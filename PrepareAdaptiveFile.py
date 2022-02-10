@@ -6,13 +6,32 @@ import numpy as np
 import csv
 from csv import reader
 import sys
+import pdb
 
 indir=sys.argv[1]
 outdir=sys.argv[2]
+
+try:
+    if(sys.argv[3] == 'r1'):
+        version1 = True
+except:
+    version1 = False
+    
 thr=10000
 
 #def PrepareAdaptiveFile(indir,outdir,thr=10000):
 ffs=os.listdir(indir)
+
+if(version1):
+    aa_row = 53
+    freq_row = 58
+    vmax_row = 96
+else:
+    aa_row = 1
+    freq_row = 3
+    vmax_row = 5
+
+
 for ff in ffs:
     if('.tsv' not in ff):  
        continue
@@ -26,24 +45,37 @@ for ff in ffs:
     csv_reader = reader(open(indir+'/'+ff,"r"), delimiter='\t', quotechar="\"") 
     ddnew=[] 
     for row in csv_reader:
-      if '*' not in row[1]:
-        if 'X' not in row[1]:
-#         if '^C.+F$' not in row[1]:
-          if (len(row[1])>=10) and (len(row[1])<=24):
-            if 'unresolved' not in row[5]:
-              if (row[1][0]=='C') and (row[1][-1]=='F'):
+      if '*' not in row[aa_row]:
+        if 'X' not in row[aa_row]:
+#         if '^C.+F$' not in row[aa_row]:
+          if (len(row[aa_row])>=10) and (len(row[aa_row])<=24):
+            if 'unresolved' not in row[vmax_row]:
+              if (row[aa_row][0]=='C') and (row[aa_row][-1]=='F'):
                   ddnew.append(row)
+
+    def select(x):
+        indices1 = [aa_row, freq_row, vmax_row]
+        return map(x.__getitem__, indices1)
+
+    #subset the ddnew array to only include columns of interest
+    ddnew = [list(select(x)) for x in ddnew]
+
+    aa_row = 0
+    freq_row = 1
+    vmax_row = 2
+
     ddnew=np.array(ddnew)      
-    sorted_array = ddnew[ddnew[:,3].astype(float).argsort()]   
+    sorted_array = ddnew[ddnew[:,freq_row].astype(float).argsort()]   
     reverse_array = sorted_array[::-1]
+
     if len(reverse_array)>thr:
-       col1=reverse_array[0:thr,1]
-       col2=reverse_array[0:thr,5]
-       col3=reverse_array[0:thr,3]
+       col1=reverse_array[0:thr,aa_row]
+       col2=reverse_array[0:thr,vmax_row]
+       col3=reverse_array[0:thr,freq_row]
     else:
-       col1=reverse_array[:,1]
-       col2=reverse_array[:,5]
-       col3=reverse_array[:,3]
+       col1=reverse_array[:,aa_row]
+       col2=reverse_array[:,vmax_row]
+       col3=reverse_array[:,freq_row]
     c=zip(col1,col2,col3)
     first_row='amino_acid	v_gene	frequency'
     f=open(newff, 'w')
