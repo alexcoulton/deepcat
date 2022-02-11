@@ -618,7 +618,9 @@ if len(sys.argv) > 1:
       writer = csv.writer(f, delimiter='\t')
       writer.writerows(zip(ffss,CC))  
  elif sys.argv[3] == '-r':       
-   with open('Cancer_score.txt', 'w') as f:
+   job_name = sys.argv[4]
+   output_file = 'jobs/' + job_name + '/Cancer_score.txt'
+   with open(output_file, 'w') as f:
       writer = csv.writer(f, delimiter='\t')
       writer.writerows(zip(ffss,CC))  
   
