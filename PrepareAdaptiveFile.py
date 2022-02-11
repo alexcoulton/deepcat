@@ -22,17 +22,20 @@ thr=10000
 #def PrepareAdaptiveFile(indir,outdir,thr=10000):
 ffs=os.listdir(indir)
 
-if(version1):
-    aa_row = 53
-    freq_row = 58
-    vmax_row = 96
-else:
-    aa_row = 1
-    freq_row = 3
-    vmax_row = 5
 
 
+count1 = 1
 for ff in ffs:
+    if(version1):
+        aa_row = 53
+        freq_row = 58
+        vmax_row = 96
+    else:
+        aa_row = 1
+        freq_row = 3
+        vmax_row = 5
+
+    print('count1 = ' + str(count1))
     if('.tsv' not in ff):  
        continue
     ff0=ff
@@ -46,16 +49,26 @@ for ff in ffs:
     ddnew=[] 
     for row in csv_reader:
       if '*' not in row[aa_row]:
+        # print(row[aa_row])
         if 'X' not in row[aa_row]:
 #         if '^C.+F$' not in row[aa_row]:
           if (len(row[aa_row])>=10) and (len(row[aa_row])<=24):
+            # print('len(row(aa_row))')
+            # print(len(row[aa_row]))
             if 'unresolved' not in row[vmax_row]:
+              # print(row[vmax_row])
               if (row[aa_row][0]=='C') and (row[aa_row][-1]=='F'):
                   ddnew.append(row)
 
     def select(x):
         indices1 = [aa_row, freq_row, vmax_row]
         return map(x.__getitem__, indices1)
+
+    # pdb.set_trace()
+    if(len(ddnew) == 0):
+        print('skip')
+        count1 += 1
+        continue
 
     #subset the ddnew array to only include columns of interest
     ddnew = [list(select(x)) for x in ddnew]
@@ -82,6 +95,7 @@ for ff in ffs:
     f.write(first_row)
     f.write('\n')
     f.close()
+    count1 += 1
     with open(newff, 'w') as f:
        writer = csv.writer(f, delimiter='\t')
        writer.writerows(c)
