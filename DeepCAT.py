@@ -1,7 +1,7 @@
 #! usr/bin/python
 ## CNN model for tumor-specific CDR3 sequence prediction
 
-import sys,os,re,csv,pathlib
+import sys,os,re,csv,pathlib,pdb
 import tensorflow as tf
 import numpy as np
 import matplotlib as mpl
@@ -551,6 +551,7 @@ def PredictCancer(f,dir_prefix):
             continue
         CDR3s.append(cc)
     CDR3sDict={}
+    CDR3sRawDict={}
     for cc in CDR3s:
         if len(pat.findall(cc))>0:
             continue
@@ -558,10 +559,13 @@ def PredictCancer(f,dir_prefix):
         ccF=AAindexEncoding(cc)
         if ll not in CDR3sDict:
             CDR3sDict[ll]=[ccF]
+            CDR3sRawDict[ll]=[cc]
         else:
             CDR3sDict[ll].append(ccF)
+            CDR3sRawDict[ll].append(cc)
     ScoreDict={}
     XX=[]
+    RawSeqs = []
     for LL in range(12,17):
         CDR3_classifier=tf.estimator.Estimator(model_fn=ModelDict[LL],model_dir=dir_prefix+'/CDR3_classifier_PCA_LL'+str(LL)+'_L2_k2f8d10_tCi01'+'/')
         if LL in CDR3sDict:
@@ -576,12 +580,13 @@ def PredictCancer(f,dir_prefix):
         for x in eval_results:
             xx.append(x['probabilities'][1])
         ScoreDict[LL]=xx
+        RawSeqs += CDR3sRawDict[LL]
         XX+=xx
     mms=[]
     for kk in ScoreDict:
         mms.append((kk,np.mean(ScoreDict[kk])))
     CancerScore=np.mean(XX)
-    return CancerScore,XX
+    return CancerScore,XX,RawSeqs
 
 #    return mms, XX, ScoreDict, CancerScore
 
@@ -604,13 +609,19 @@ if len(sys.argv) > 1:
  dir_prefix=sys.argv[2]
  CC=[]
  ffss=[]
+ IndividualCancerScores = []
+ IndividualCDR3Seqs = []
+ SampleName = []
  for ff in ffs:
    if ff == 'README.md':
      continue
    else: 
-     score,XX1 = PredictCancer(DIR+'/'+ff, dir_prefix+'/tmp/')
+     score,XX1,RawSeqs1 = PredictCancer(DIR+'/'+ff, dir_prefix+'/tmp/')
      CC.append(score)
      ffss.append(ff)  
+     IndividualCancerScores += XX1
+     IndividualCDR3Seqs += (RawSeqs1)
+     SampleName += ([ff] * len(XX1))
  CC=np.array(CC)
  ffss=np.array(ffss)
  if sys.argv[3] == '-t':
@@ -620,8 +631,12 @@ if len(sys.argv) > 1:
  elif sys.argv[3] == '-r':       
    job_name = sys.argv[4]
    output_file = 'jobs/' + job_name + '/Cancer_score.txt'
+   output_file_seq_scores = 'jobs/' + job_name + '/Seq_scores.txt'
    with open(output_file, 'w') as f:
       writer = csv.writer(f, delimiter='\t')
       writer.writerows(zip(ffss,CC))  
+   with open(output_file_seq_scores, 'w') as f:
+      writer = csv.writer(f, delimiter='\t')
+      writer.writerows(zip(SampleName, IndividualCancerScores, IndividualCDR3Seqs))  
   
   
